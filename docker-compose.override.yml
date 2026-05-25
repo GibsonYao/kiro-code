@@ -1,0 +1,27 @@
+version: "3.9"
+
+# Development overrides: mounts source code for hot-reload
+services:
+  api:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    volumes:
+      - ./backend:/app
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+    environment:
+      - DEBUG=true
+
+  celery-worker:
+    volumes:
+      - ./backend:/app
+    command: celery -A app.tasks worker --loglevel=info --concurrency=2
+    environment:
+      - DEBUG=true
+
+  celery-beat:
+    volumes:
+      - ./backend:/app
+    command: celery -A app.tasks beat --loglevel=info
+    environment:
+      - DEBUG=true

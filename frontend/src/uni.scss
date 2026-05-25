@@ -1,0 +1,18 @@
+/**
+ * uni-app全局SCSS变量
+ * 此文件会被自动注入到每个组件的style中
+ * 仅放置SCSS变量，不要放置具体样式
+ */
+
+/* 引入uView Plus主题变量 */
+@import 'uview-plus/theme.scss';
+
+/* uni-ui 自定义主题色 */
+$uni-primary: #4A90D9;
+$uni-success: #52C41A;
+$uni-warning: #FAAD14;
+$uni-error: #FF4D4F;
+$uni-main-color: #4A90D9;
+$uni-base-color: #1A1A2E;
+$uni-secondary-color: #4A4A68;
+$uni-border-color: #E8E8F0;

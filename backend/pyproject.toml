@@ -1,0 +1,41 @@
+[project]
+name = "ai-family-butler"
+version = "0.1.0"
+description = "小灶AI家庭管家 - AI-native family management application"
+requires-python = ">=3.11"
+dependencies = [
+    "fastapi==0.115.6",
+    "uvicorn[standard]==0.34.0",
+    "sqlalchemy[asyncio]==2.0.36",
+    "asyncpg==0.30.0",
+    "psycopg2-binary==2.9.9",
+    "aiosqlite==0.20.0",
+    "pydantic==2.10.3",
+    "pydantic-settings==2.7.0",
+    "celery==5.4.0",
+    "redis==5.2.1",
+    "python-jose[cryptography]==3.3.0",
+    "passlib[bcrypt]==1.7.4",
+    "alembic==1.14.0",
+    "httpx==0.28.1",
+    "dashscope==1.20.14",
+    "oss2==2.19.1",
+    "python-multipart==0.0.19",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest==8.3.4",
+    "pytest-asyncio==0.24.0",
+    "httpx==0.28.1",
+]
+
+[tool.setuptools.packages.find]
+include = ["app*"]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+
+[build-system]
+requires = ["setuptools>=75.0"]
+build-backend = "setuptools.build_meta"
