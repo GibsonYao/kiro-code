@@ -2,7 +2,7 @@
 
 from fastapi import APIRouter
 
-from app.api.v1.endpoints import actions, ai, auth, cascade_unlink, goals, plans, points, reviews, tasks, wishes
+from app.api.v1.endpoints import actions, admin, ai, auth, cascade_unlink, goals, plans, points, reviews, tasks, wishes
 
 api_router = APIRouter()
 
@@ -37,6 +37,9 @@ api_router.include_router(
 
 # AI generation module
 api_router.include_router(ai.router, prefix="/ai", tags=["ai"])
+
+# Admin module
+api_router.include_router(admin.router, prefix="/admin", tags=["admin"])
+
 # api_router.include_router(recipes.router, prefix="/recipes", tags=["recipes"])
 # api_router.include_router(families.router, prefix="/families", tags=["families"])
-# api_router.include_router(admin.router, prefix="/admin", tags=["admin"])

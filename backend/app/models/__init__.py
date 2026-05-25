@@ -12,6 +12,7 @@ from app.models.points import PointsAccount, PointsTransaction, PointsTransactio
 from app.models.calendar import CalendarEvent, CalendarEventType
 from app.models.recipe import MemberFoodPreference, Recipe
 from app.models.ai_config import AIModelConfig
+from app.models.audit_log import AuditLog
 
 __all__ = [
     "Base",
@@ -60,4 +61,6 @@ __all__ = [
     "MemberFoodPreference",
     # AI Config
     "AIModelConfig",
+    # Audit Log
+    "AuditLog",
 ]
