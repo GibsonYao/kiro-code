@@ -8,6 +8,11 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.api.v1.router import api_router
 from app.core.config import settings
 from app.core.deps import engine
+from app.core.middleware import (
+    FamilyDataIsolationMiddleware,
+    ResponseTimeMiddleware,
+    SecurityHeadersMiddleware,
+)
 from app.models.base import Base
 
 
@@ -42,6 +47,15 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Security headers middleware
+app.add_middleware(SecurityHeadersMiddleware)
+
+# Response time monitoring middleware
+app.add_middleware(ResponseTimeMiddleware)
+
+# Family data isolation middleware
+app.add_middleware(FamilyDataIsolationMiddleware)
 
 
 @app.get("/api/health")

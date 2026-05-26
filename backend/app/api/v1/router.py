@@ -2,7 +2,7 @@
 
 from fastapi import APIRouter
 
-from app.api.v1.endpoints import actions, admin, ai, auth, cascade_unlink, goals, plans, points, reviews, tasks, wishes
+from app.api.v1.endpoints import actions, admin, ai, auth, calendar, cascade_unlink, families, goals, notifications, plans, points, recipes, reviews, tasks, wishes
 
 api_router = APIRouter()
 
@@ -41,5 +41,14 @@ api_router.include_router(ai.router, prefix="/ai", tags=["ai"])
 # Admin module
 api_router.include_router(admin.router, prefix="/admin", tags=["admin"])
 
-# api_router.include_router(recipes.router, prefix="/recipes", tags=["recipes"])
-# api_router.include_router(families.router, prefix="/families", tags=["families"])
+# Calendar module
+api_router.include_router(calendar.router, prefix="/calendar", tags=["calendar"])
+
+# Recipes module
+api_router.include_router(recipes.router, prefix="/recipes", tags=["recipes"])
+
+# Families module
+api_router.include_router(families.router, prefix="/families", tags=["families"])
+
+# Notifications module
+api_router.include_router(notifications.router, prefix="/notifications", tags=["notifications"])

@@ -143,7 +143,7 @@ function goCreate() {
 }
 
 function goDetail(id: string) {
-  uni.navigateTo({ url: `/pages/tasks/submit?id=${id}` })
+  uni.navigateTo({ url: `/pages/tasks/detail?id=${id}` })
 }
 
 function statusLabel(status: string): string {

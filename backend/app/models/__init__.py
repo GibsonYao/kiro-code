@@ -13,6 +13,7 @@ from app.models.calendar import CalendarEvent, CalendarEventType
 from app.models.recipe import MemberFoodPreference, Recipe
 from app.models.ai_config import AIModelConfig
 from app.models.audit_log import AuditLog
+from app.models.notification import Notification, NotificationType
 
 __all__ = [
     "Base",
@@ -63,4 +64,7 @@ __all__ = [
     "AIModelConfig",
     # Audit Log
     "AuditLog",
+    # Notification
+    "Notification",
+    "NotificationType",
 ]

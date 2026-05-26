@@ -61,9 +61,9 @@ class TestCeleryConfig:
 class TestCeleryBeatSchedule:
     """Verify Celery Beat schedule is configured correctly."""
 
-    def test_beat_schedule_has_three_entries(self):
-        """Beat schedule should have three periodic task entries."""
-        assert len(celery_app.conf.beat_schedule) == 3
+    def test_beat_schedule_has_four_entries(self):
+        """Beat schedule should have four periodic task entries."""
+        assert len(celery_app.conf.beat_schedule) == 4
 
     def test_task_timeout_penalty_schedule(self):
         """Task timeout penalty should run every 10 minutes."""

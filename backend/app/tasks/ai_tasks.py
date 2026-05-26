@@ -783,3 +783,73 @@ def check_plan_overdue() -> dict:
         raise
     finally:
         session.close()
+
+
+@celery_app.task(name="app.tasks.ai_tasks.check_anniversary_reminders")
+def check_anniversary_reminders() -> dict:
+    """Periodic task: Check for upcoming anniversaries and send reminders.
+
+    Runs daily at 8:00 AM via Celery Beat.
+    Checks each family's anniversaries and sends reminders N days before.
+
+    Returns:
+        Dict with count of reminders sent.
+    """
+    from datetime import date, timedelta
+
+    from sqlalchemy import select
+
+    from app.models.calendar import CalendarEvent, CalendarEventType
+    from app.models.family import Family
+
+    session = _get_sync_session()
+    try:
+        today = date.today()
+
+        # Get all anniversary events
+        stmt = select(CalendarEvent).where(
+            CalendarEvent.event_type == CalendarEventType.anniversary,
+        )
+        result = session.execute(stmt)
+        anniversaries = list(result.scalars().all())
+
+        reminder_count = 0
+        for ann in anniversaries:
+            if ann.event_date is None:
+                continue
+            if ann.remind_before_days <= 0:
+                continue
+
+            # Calculate this year's anniversary date
+            try:
+                this_year_date = ann.event_date.replace(year=today.year)
+            except ValueError:
+                # Handle Feb 29 in non-leap years
+                this_year_date = ann.event_date.replace(year=today.year, day=28)
+
+            # If already passed this year, check next year
+            if this_year_date < today:
+                try:
+                    this_year_date = ann.event_date.replace(year=today.year + 1)
+                except ValueError:
+                    this_year_date = ann.event_date.replace(year=today.year + 1, day=28)
+
+            # Check if we should remind today
+            remind_date = this_year_date - timedelta(days=ann.remind_before_days)
+            if remind_date == today:
+                # TODO: Send notification to all family members
+                # For now, just count it. Notification service will be implemented in Task 19.
+                logger.info(
+                    f"Anniversary reminder: '{ann.title}' in {ann.remind_before_days} days "
+                    f"(family_id={ann.family_id})"
+                )
+                reminder_count += 1
+
+        session.commit()
+        return {"reminder_count": reminder_count}
+
+    except Exception:
+        session.rollback()
+        raise
+    finally:
+        session.close()

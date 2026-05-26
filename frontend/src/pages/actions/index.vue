@@ -33,6 +33,7 @@
         v-for="action in filteredActions"
         :key="action.id"
         class="action-card"
+        @click="goDetail(action.id)"
       >
         <image
           v-if="action.cover_image_url"
@@ -185,6 +186,10 @@ async function confirmTimeLog() {
 
 function goCreate() {
   uni.navigateTo({ url: '/pages/actions/create' })
+}
+
+function goDetail(id: string) {
+  uni.navigateTo({ url: `/pages/actions/detail?id=${id}` })
 }
 
 function statusLabel(status: string): string {

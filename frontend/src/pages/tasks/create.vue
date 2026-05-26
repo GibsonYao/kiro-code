@@ -5,8 +5,10 @@
       <view class="nav-back" @click="goBack">
         <text class="back-icon">←</text>
       </view>
-      <text class="nav-title">创建任务</text>
-      <view class="nav-placeholder" />
+      <text class="nav-title">{{ isEdit ? '编辑任务' : '创建任务' }}</text>
+      <view class="nav-right">
+        <text v-if="isEdit" class="delete-btn" @click="handleDelete">删除</text>
+      </view>
     </view>
 
     <scroll-view class="form-container" scroll-y>
@@ -106,10 +108,10 @@
     <view class="submit-bar">
       <button
         class="submit-btn"
-        :disabled="!canSubmit || taskStore.creating"
+        :disabled="!canSubmit || submitting"
         @click="handleSubmit"
       >
-        {{ taskStore.creating ? '创建中...' : '创建任务' }}
+        {{ submitting ? (isEdit ? '保存中...' : '创建中...') : (isEdit ? '保存修改' : '创建任务') }}
       </button>
     </view>
   </view>
@@ -117,10 +119,16 @@
 
 <script setup lang="ts">
 import { ref, computed } from 'vue'
+import { onLoad } from '@dcloudio/uni-app'
 import { useTaskStore } from '@/stores/task'
+import { taskApi } from '@/services/api/tasks'
 import type { TaskType } from '@/services/types'
 
 const taskStore = useTaskStore()
+
+const isEdit = ref(false)
+const editId = ref('')
+const submitting = ref(false)
 
 const form = ref({
   title: '',
@@ -135,15 +143,40 @@ const penaltyStr = ref('')
 
 const canSubmit = computed(() => form.value.title.trim().length > 0)
 
+onLoad((query) => {
+  const id = query?.id
+  if (id) {
+    isEdit.value = true
+    editId.value = id
+    loadTask(id)
+  }
+})
+
+async function loadTask(id: string) {
+  try {
+    const task = await taskApi.getTask(id)
+    form.value.title = task.title
+    form.value.description = task.description || ''
+    form.value.task_type = task.task_type
+    form.value.plan_step_id = task.plan_step_id || ''
+    timeLimitStr.value = task.time_limit_hours ? String(task.time_limit_hours) : ''
+    rewardStr.value = task.reward_points ? String(task.reward_points) : ''
+    penaltyStr.value = task.penalty_points ? String(task.penalty_points) : ''
+  } catch {
+    uni.showToast({ title: '加载失败', icon: 'none' })
+  }
+}
+
 function goBack() {
   uni.navigateBack()
 }
 
 async function handleSubmit() {
-  if (!canSubmit.value) return
+  if (!canSubmit.value || submitting.value) return
 
+  submitting.value = true
   try {
-    await taskStore.createTask({
+    const data = {
       title: form.value.title.trim(),
       description: form.value.description.trim() || undefined,
       task_type: form.value.task_type,
@@ -151,13 +184,40 @@ async function handleSubmit() {
       time_limit_hours: timeLimitStr.value ? parseFloat(timeLimitStr.value) : undefined,
       reward_points: rewardStr.value ? parseInt(rewardStr.value) : 0,
       penalty_points: penaltyStr.value ? parseInt(penaltyStr.value) : 0,
-    })
+    }
 
-    uni.showToast({ title: '创建成功', icon: 'success' })
+    if (isEdit.value) {
+      await taskApi.updateTask(editId.value, data)
+      uni.showToast({ title: '保存成功', icon: 'success' })
+    } else {
+      await taskStore.createTask(data)
+      uni.showToast({ title: '创建成功', icon: 'success' })
+    }
     setTimeout(() => uni.navigateBack(), 1000)
   } catch {
-    uni.showToast({ title: '创建失败', icon: 'none' })
+    uni.showToast({ title: isEdit.value ? '保存失败' : '创建失败', icon: 'none' })
+  } finally {
+    submitting.value = false
   }
+}
+
+async function handleDelete() {
+  uni.showModal({
+    title: '确认删除',
+    content: '删除后不可恢复，确定要删除这个任务吗？',
+    confirmColor: '#f5222d',
+    success: async (res) => {
+      if (res.confirm) {
+        try {
+          await taskStore.deleteTask(editId.value)
+          uni.showToast({ title: '已删除', icon: 'success' })
+          setTimeout(() => uni.navigateBack(), 800)
+        } catch {
+          uni.showToast({ title: '删除失败', icon: 'none' })
+        }
+      }
+    },
+  })
 }
 </script>
 
@@ -192,8 +252,15 @@ async function handleSubmit() {
   color: #333;
 }
 
-.nav-placeholder {
+.nav-right {
   width: 64rpx;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.delete-btn {
+  font-size: 28rpx;
+  color: #f5222d;
 }
 
 .form-container {

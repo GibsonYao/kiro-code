@@ -11,15 +11,15 @@
 
     <!-- 进度统计 -->
     <view class="stats-section">
-      <view class="stat-card">
+      <view class="stat-card" @click="goTo('/pages/wishes/index')">
         <text class="stat-number">{{ stats.wishes }}</text>
         <text class="stat-label">愿望</text>
       </view>
-      <view class="stat-card">
+      <view class="stat-card" @click="goTo('/pages/goals/index')">
         <text class="stat-number">{{ stats.goals }}</text>
         <text class="stat-label">目标</text>
       </view>
-      <view class="stat-card">
+      <view class="stat-card" @click="goTo('/pages/tasks/index')">
         <text class="stat-number">{{ stats.tasks }}</text>
         <text class="stat-label">任务</text>
       </view>
@@ -29,36 +29,111 @@
       </view>
     </view>
 
-    <!-- 最近愿望 -->
-    <view class="section" v-if="recentWishes.length > 0">
-      <view class="section-header">
-        <text class="section-title">✨ 我的愿望</text>
-        <text class="section-more" @click="goTo('/pages/wishes/index')">查看全部</text>
+    <!-- 快速入口 -->
+    <view class="quick-entries">
+      <view class="quick-entry" @click="goTo('/pages/wishes/create')">
+        <view class="quick-entry-icon wish-bg">
+          <text class="quick-entry-emoji">💫</text>
+        </view>
+        <text class="quick-entry-label">许愿</text>
       </view>
-      <scroll-view class="wish-scroll" scroll-x :show-scrollbar="false">
-        <view class="wish-cards-row">
+      <view class="quick-entry" @click="goTo('/pages/goals/create')">
+        <view class="quick-entry-icon goal-bg">
+          <text class="quick-entry-emoji">🎯</text>
+        </view>
+        <text class="quick-entry-label">目标</text>
+      </view>
+      <view class="quick-entry" @click="goTo('/pages/tasks/create')">
+        <view class="quick-entry-icon task-bg">
+          <text class="quick-entry-emoji">✅</text>
+        </view>
+        <text class="quick-entry-label">任务</text>
+      </view>
+      <view class="quick-entry" @click="goTo('/pages/calendar/index')">
+        <view class="quick-entry-icon calendar-bg">
+          <text class="quick-entry-emoji">📅</text>
+        </view>
+        <text class="quick-entry-label">日历</text>
+      </view>
+    </view>
+
+    <!-- 瀑布流混合内容区 -->
+    <view class="section" v-if="feedItems.length > 0">
+      <view class="section-header">
+        <text class="section-title">📋 最近动态</text>
+      </view>
+      <view class="waterfall-container">
+        <view class="waterfall-column waterfall-left">
           <view
-            v-for="wish in recentWishes"
-            :key="wish.id"
-            class="wish-visual-card"
-            @click="goToWishDetail(wish.id)"
+            v-for="item in leftColumnItems"
+            :key="item.id"
+            class="waterfall-card"
+            @click="goToDetail(item)"
           >
-            <view class="wish-card-bg" :style="{ background: getCardGradient(wish) }">
-              <text class="wish-card-emoji">💫</text>
+            <view class="card-cover" :style="{ background: getItemGradient(item) }">
+              <image
+                v-if="item.coverImage"
+                :src="item.coverImage"
+                class="card-cover-img"
+                mode="aspectFill"
+              />
+              <view v-else class="card-cover-placeholder">
+                <text class="card-cover-emoji">{{ getItemEmoji(item) }}</text>
+              </view>
+              <view class="card-type-badge" :class="item.type">
+                <text class="card-type-text">{{ getTypeLabel(item.type) }}</text>
+              </view>
             </view>
-            <view class="wish-card-body">
-              <text class="wish-card-title">{{ wish.display_text || wish.title }}</text>
-              <text class="wish-card-status" :class="wish.status">
-                {{ statusLabel(wish.status) }}
-              </text>
+            <view class="card-body">
+              <text class="card-title">{{ item.title }}</text>
+              <text class="card-desc" v-if="item.description">{{ item.description }}</text>
+              <view class="card-footer">
+                <view class="card-status" :class="item.status">
+                  <text class="card-status-text">{{ getStatusLabel(item) }}</text>
+                </view>
+                <text class="card-time">{{ formatTime(item.createdAt) }}</text>
+              </view>
             </view>
           </view>
         </view>
-      </scroll-view>
+        <view class="waterfall-column waterfall-right">
+          <view
+            v-for="item in rightColumnItems"
+            :key="item.id"
+            class="waterfall-card"
+            @click="goToDetail(item)"
+          >
+            <view class="card-cover" :style="{ background: getItemGradient(item) }">
+              <image
+                v-if="item.coverImage"
+                :src="item.coverImage"
+                class="card-cover-img"
+                mode="aspectFill"
+              />
+              <view v-else class="card-cover-placeholder">
+                <text class="card-cover-emoji">{{ getItemEmoji(item) }}</text>
+              </view>
+              <view class="card-type-badge" :class="item.type">
+                <text class="card-type-text">{{ getTypeLabel(item.type) }}</text>
+              </view>
+            </view>
+            <view class="card-body">
+              <text class="card-title">{{ item.title }}</text>
+              <text class="card-desc" v-if="item.description">{{ item.description }}</text>
+              <view class="card-footer">
+                <view class="card-status" :class="item.status">
+                  <text class="card-status-text">{{ getStatusLabel(item) }}</text>
+                </view>
+                <text class="card-time">{{ formatTime(item.createdAt) }}</text>
+              </view>
+            </view>
+          </view>
+        </view>
+      </view>
     </view>
 
     <!-- 空状态引导 -->
-    <view class="section" v-else>
+    <view class="section" v-else-if="!loading">
       <view class="empty-inspire">
         <text class="empty-inspire-emoji">🌟</text>
         <text class="empty-inspire-title">开始你的第一个愿望</text>
@@ -158,14 +233,21 @@
 
 <script setup lang="ts">
 import { ref, computed, reactive } from 'vue'
-import { onShow } from '@dcloudio/uni-app'
+import { onShow, onPullDownRefresh } from '@dcloudio/uni-app'
 import { useUserStore } from '@/stores/user'
 import { useWishStore } from '@/stores/wish'
+import { useGoalStore } from '@/stores/goal'
+import { useTaskStore } from '@/stores/task'
 import { checkAuth } from '@/utils/route-guard'
-import type { WishStatus } from '@/services/types'
+import type { WishItem, GoalItem, TaskItem } from '@/services/types'
 
 const userStore = useUserStore()
 const wishStore = useWishStore()
+const goalStore = useGoalStore()
+const taskStore = useTaskStore()
+
+// Loading state
+const loading = ref(false)
 
 // FAB state
 const fabOpen = ref(false)
@@ -177,6 +259,17 @@ const stats = reactive({
   tasks: 0,
   completed: 0,
 })
+
+// Feed item type for waterfall
+interface FeedItem {
+  id: string
+  type: 'wish' | 'goal' | 'task'
+  title: string
+  description: string | null
+  coverImage: string | null
+  status: string
+  createdAt: string
+}
 
 const greetingEmoji = computed(() => {
   const hour = new Date().getHours()
@@ -208,39 +301,157 @@ const motivationalQuote = computed(() => {
   return motivationalQuotes[dayIndex]
 })
 
-const recentWishes = computed(() => {
-  return wishStore.wishes.slice(0, 5)
+// Build mixed feed from wishes, goals, and tasks
+const feedItems = computed<FeedItem[]>(() => {
+  const items: FeedItem[] = []
+
+  // Add wishes
+  wishStore.wishes.slice(0, 6).forEach((wish: WishItem) => {
+    items.push({
+      id: `wish-${wish.id}`,
+      type: 'wish',
+      title: wish.display_text || wish.title,
+      description: wish.vision_story ? wish.vision_story.slice(0, 60) : null,
+      coverImage: wish.vision_image_url || wish.cover_image_url,
+      status: wish.status,
+      createdAt: wish.created_at,
+    })
+  })
+
+  // Add goals
+  goalStore.goals.slice(0, 6).forEach((goal: GoalItem) => {
+    items.push({
+      id: `goal-${goal.id}`,
+      type: 'goal',
+      title: goal.display_text || goal.title,
+      description: goal.description ? goal.description.slice(0, 60) : null,
+      coverImage: goal.cover_image_url,
+      status: goal.status,
+      createdAt: goal.created_at,
+    })
+  })
+
+  // Add tasks
+  taskStore.myTasks.slice(0, 6).forEach((task: TaskItem) => {
+    items.push({
+      id: `task-${task.id}`,
+      type: 'task',
+      title: task.display_text || task.title,
+      description: task.description ? task.description.slice(0, 60) : null,
+      coverImage: task.cover_image_url,
+      status: task.status,
+      createdAt: task.created_at,
+    })
+  })
+
+  // Sort by creation time (newest first)
+  items.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+
+  // Limit to 12 items for the feed
+  return items.slice(0, 12)
 })
 
+// Split items into two columns for waterfall layout
+const leftColumnItems = computed(() => {
+  return feedItems.value.filter((_, index) => index % 2 === 0)
+})
+
+const rightColumnItems = computed(() => {
+  return feedItems.value.filter((_, index) => index % 2 === 1)
+})
+
+// Gradient colors for cards without cover images
 const cardGradients = [
   'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
   'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)',
   'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)',
   'linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)',
   'linear-gradient(135deg, #fa709a 0%, #fee140 100%)',
+  'linear-gradient(135deg, #a18cd1 0%, #fbc2eb 100%)',
+  'linear-gradient(135deg, #ffecd2 0%, #fcb69f 100%)',
+  'linear-gradient(135deg, #89f7fe 0%, #66a6ff 100%)',
 ]
 
-function getCardGradient(wish: { id: string }): string {
-  const hash = wish.id.charCodeAt(0) + wish.id.charCodeAt(wish.id.length - 1)
+function getItemGradient(item: FeedItem): string {
+  if (item.coverImage) return 'transparent'
+  const hash = item.id.charCodeAt(0) + item.id.charCodeAt(item.id.length - 1)
   return cardGradients[hash % cardGradients.length]
 }
 
-function statusLabel(status: WishStatus): string {
-  const map: Record<WishStatus, string> = {
+function getItemEmoji(item: FeedItem): string {
+  const emojiMap: Record<string, string> = {
+    wish: '💫',
+    goal: '🎯',
+    task: '✅',
+  }
+  return emojiMap[item.type] || '📌'
+}
+
+function getTypeLabel(type: string): string {
+  const map: Record<string, string> = {
+    wish: '愿望',
+    goal: '目标',
+    task: '任务',
+  }
+  return map[type] || type
+}
+
+function getStatusLabel(item: FeedItem): string {
+  const wishStatusMap: Record<string, string> = {
     active: '进行中',
     achieved: '已实现',
     archived: '已归档',
   }
-  return map[status] || status
+  const goalStatusMap: Record<string, string> = {
+    active: '进行中',
+    completed: '已完成',
+    archived: '已归档',
+  }
+  const taskStatusMap: Record<string, string> = {
+    pending: '待开始',
+    claimed: '已认领',
+    in_progress: '进行中',
+    submitted: '待审核',
+    approved: '已完成',
+    rejected: '已驳回',
+    expired: '已过期',
+  }
+
+  if (item.type === 'wish') return wishStatusMap[item.status] || item.status
+  if (item.type === 'goal') return goalStatusMap[item.status] || item.status
+  if (item.type === 'task') return taskStatusMap[item.status] || item.status
+  return item.status
+}
+
+function formatTime(dateStr: string): string {
+  if (!dateStr) return ''
+  const date = new Date(dateStr)
+  const now = new Date()
+  const diff = now.getTime() - date.getTime()
+  const minutes = Math.floor(diff / 60000)
+  const hours = Math.floor(diff / 3600000)
+  const days = Math.floor(diff / 86400000)
+
+  if (minutes < 1) return '刚刚'
+  if (minutes < 60) return `${minutes}分钟前`
+  if (hours < 24) return `${hours}小时前`
+  if (days < 7) return `${days}天前`
+  return `${date.getMonth() + 1}/${date.getDate()}`
 }
 
 function goTo(url: string) {
   uni.navigateTo({ url })
 }
 
-function goToWishDetail(id: string) {
-  const idStr = String(id)
-  uni.navigateTo({ url: `/pages/wishes/create?id=${idStr}` })
+function goToDetail(item: FeedItem) {
+  const rawId = item.id.replace(/^(wish|goal|task)-/, '')
+  if (item.type === 'wish') {
+    uni.navigateTo({ url: `/pages/wishes/create?id=${rawId}` })
+  } else if (item.type === 'goal') {
+    uni.navigateTo({ url: `/pages/goals/create?id=${rawId}` })
+  } else if (item.type === 'task') {
+    uni.navigateTo({ url: `/pages/tasks/detail?id=${rawId}` })
+  }
 }
 
 function toggleFab() {
@@ -256,45 +467,38 @@ function fabAction(url: string) {
   uni.navigateTo({ url })
 }
 
-async function loadStats() {
-  // Use wish store data for stats
+async function loadData() {
+  loading.value = true
+  try {
+    await Promise.all([
+      wishStore.fetchWishes(),
+      goalStore.fetchGoals(),
+      taskStore.fetchMyTasks(),
+    ])
+    loadStats()
+  } finally {
+    loading.value = false
+  }
+}
+
+function loadStats() {
   stats.wishes = wishStore.total || wishStore.wishes.length
-  // For goals/tasks/completed, we'd need separate API calls
-  // For now, show wish-based stats
-  stats.goals = 0
-  stats.tasks = 0
-  stats.completed = wishStore.wishes.filter(w => w.status === 'achieved').length
-
-  // Try to fetch goals/tasks counts from API
-  try {
-    const { get } = await import('@/services/request')
-    const goalsRes = await get<{ total: number }>('/goals', { page: 1, page_size: 1 })
-    if (goalsRes && typeof goalsRes === 'object' && 'total' in goalsRes) {
-      stats.goals = goalsRes.total
-    }
-  } catch {
-    // Silently fail - stats are optional
-  }
-
-  try {
-    const { get } = await import('@/services/request')
-    const tasksRes = await get<{ total: number; items: Array<{ status: string }> }>('/tasks', { page: 1, page_size: 100 })
-    if (tasksRes && typeof tasksRes === 'object' && 'total' in tasksRes) {
-      stats.tasks = tasksRes.total
-      if ('items' in tasksRes && Array.isArray(tasksRes.items)) {
-        stats.completed += tasksRes.items.filter((t) => t.status === 'approved').length
-      }
-    }
-  } catch {
-    // Silently fail
-  }
+  stats.goals = goalStore.total || goalStore.goals.length
+  stats.tasks = taskStore.myTotal || taskStore.myTasks.length
+  stats.completed =
+    wishStore.wishes.filter(w => w.status === 'achieved').length +
+    goalStore.goals.filter(g => g.status === 'completed').length +
+    taskStore.myTasks.filter(t => t.status === 'approved').length
 }
 
 onShow(() => {
   if (!checkAuth()) return
-  wishStore.fetchWishes().then(() => {
-    loadStats()
-  })
+  loadData()
+})
+
+onPullDownRefresh(async () => {
+  await loadData()
+  uni.stopPullDownRefresh()
 })
 </script>
 
@@ -366,6 +570,47 @@ onShow(() => {
   color: #999;
 }
 
+// Quick entries
+.quick-entries {
+  display: flex;
+  justify-content: space-around;
+  padding: 24rpx 32rpx;
+  margin: 0 24rpx 24rpx;
+  background: #fff;
+  border-radius: 24rpx;
+  box-shadow: 0 4rpx 16rpx rgba(0, 0, 0, 0.06);
+}
+
+.quick-entry {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12rpx;
+}
+
+.quick-entry-icon {
+  width: 80rpx;
+  height: 80rpx;
+  border-radius: 20rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  &.wish-bg { background: linear-gradient(135deg, #f0e6ff 0%, #e8d5ff 100%); }
+  &.goal-bg { background: linear-gradient(135deg, #e6f7ff 0%, #d5eeff 100%); }
+  &.task-bg { background: linear-gradient(135deg, #e6ffe6 0%, #d5ffd5 100%); }
+  &.calendar-bg { background: linear-gradient(135deg, #fff7e6 0%, #ffeed5 100%); }
+}
+
+.quick-entry-emoji {
+  font-size: 36rpx;
+}
+
+.quick-entry-label {
+  font-size: 22rpx;
+  color: #666;
+}
+
 // Section
 .section {
   padding: 0 24rpx;
@@ -386,54 +631,87 @@ onShow(() => {
   color: #1a1a2e;
 }
 
-.section-more {
-  font-size: 24rpx;
-  color: #667eea;
+// Waterfall layout
+.waterfall-container {
+  display: flex;
+  gap: 16rpx;
 }
 
-// Wish cards horizontal scroll
-.wish-scroll {
-  white-space: nowrap;
-  width: 100%;
+.waterfall-column {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 16rpx;
 }
 
-.wish-cards-row {
-  display: inline-flex;
-  gap: 20rpx;
-  padding: 8rpx 0 16rpx;
-}
-
-.wish-visual-card {
-  width: 260rpx;
+.waterfall-card {
   background: #fff;
   border-radius: 20rpx;
   overflow: hidden;
   box-shadow: 0 4rpx 16rpx rgba(0, 0, 0, 0.08);
-  display: inline-block;
   transition: transform 0.2s;
 
   &:active {
-    transform: scale(0.96);
+    transform: scale(0.97);
   }
 }
 
-.wish-card-bg {
-  height: 140rpx;
+.card-cover {
+  position: relative;
+  min-height: 160rpx;
   display: flex;
   align-items: center;
   justify-content: center;
 }
 
-.wish-card-emoji {
-  font-size: 48rpx;
+.card-cover-img {
+  width: 100%;
+  height: 200rpx;
+  display: block;
 }
 
-.wish-card-body {
+.card-cover-placeholder {
+  width: 100%;
+  height: 160rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.card-cover-emoji {
+  font-size: 56rpx;
+}
+
+.card-type-badge {
+  position: absolute;
+  top: 12rpx;
+  left: 12rpx;
+  padding: 4rpx 14rpx;
+  border-radius: 16rpx;
+  backdrop-filter: blur(4px);
+
+  &.wish {
+    background: rgba(102, 126, 234, 0.85);
+  }
+  &.goal {
+    background: rgba(79, 172, 254, 0.85);
+  }
+  &.task {
+    background: rgba(67, 233, 123, 0.85);
+  }
+}
+
+.card-type-text {
+  font-size: 20rpx;
+  color: #fff;
+  font-weight: 500;
+}
+
+.card-body {
   padding: 16rpx 20rpx 20rpx;
-  white-space: normal;
 }
 
-.wish-card-title {
+.card-title {
   font-size: 26rpx;
   font-weight: 600;
   color: #1a1a2e;
@@ -441,29 +719,65 @@ onShow(() => {
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
+  line-height: 1.5;
   margin-bottom: 8rpx;
-  line-height: 1.4;
 }
 
-.wish-card-status {
-  font-size: 20rpx;
+.card-desc {
+  font-size: 22rpx;
+  color: #888;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  line-height: 1.5;
+  margin-bottom: 12rpx;
+}
+
+.card-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.card-status {
   padding: 4rpx 12rpx;
-  border-radius: 16rpx;
+  border-radius: 12rpx;
 
   &.active {
     background: #e8f5e9;
-    color: #2e7d32;
   }
-
-  &.achieved {
+  &.achieved, &.completed, &.approved {
     background: #fff3e0;
-    color: #e65100;
   }
-
   &.archived {
     background: #f5f5f5;
-    color: #9e9e9e;
   }
+  &.pending, &.claimed {
+    background: #e3f2fd;
+  }
+  &.in_progress {
+    background: #e8f5e9;
+  }
+  &.submitted {
+    background: #fce4ec;
+  }
+  &.rejected {
+    background: #ffebee;
+  }
+  &.expired {
+    background: #f5f5f5;
+  }
+}
+
+.card-status-text {
+  font-size: 20rpx;
+  color: #555;
+}
+
+.card-time {
+  font-size: 20rpx;
+  color: #bbb;
 }
 
 // Empty inspire

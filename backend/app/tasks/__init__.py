@@ -47,6 +47,10 @@ celery_app.conf.update(
             "task": "app.tasks.ai_tasks.check_plan_overdue",
             "schedule": crontab(minute=0),  # Every hour
         },
+        "anniversary-reminder": {
+            "task": "app.tasks.ai_tasks.check_anniversary_reminders",
+            "schedule": crontab(hour=8, minute=0),  # Daily at 8:00 AM
+        },
     },
 )
 

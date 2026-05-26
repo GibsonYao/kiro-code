@@ -13,6 +13,7 @@ from app.core.cache import invalidate_ai_config_cache
 from app.core.deps import get_current_user, get_db
 from app.models.ai_config import AIModelConfig
 from app.models.audit_log import AuditLog
+from app.models.family import Family, FamilyMember
 from app.models.user import User
 from app.schemas.admin import (
     AIConfigActivateResponse,
@@ -21,6 +22,10 @@ from app.schemas.admin import (
     AIConfigResponse,
     AIConfigTestResponse,
     AIConfigUpdate,
+    FamilyDetailResponse,
+    FamilyListItem,
+    FamilyListResponse,
+    FamilyMemberBrief,
 )
 from app.utils.encryption import decrypt_value, encrypt_value, mask_api_key
 
@@ -405,4 +410,121 @@ async def toggle_ai_config_active(
         id=config.id,
         is_active=config.is_active,
         message=f"配置{status_text}",
+    )
+
+
+# ─── Family Admin Endpoints (Task 14.1 - Read-only) ───────────────────────────
+
+
+@router.get("/families", response_model=FamilyListResponse)
+async def list_families(
+    page: int = Query(1, ge=1, description="Page number"),
+    page_size: int = Query(20, ge=1, le=100, description="Items per page"),
+    admin_user: User = Depends(get_admin_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """List all families with member counts (read-only admin view)."""
+    # Count total families
+    count_stmt = select(func.count()).select_from(Family)
+    total_result = await db.execute(count_stmt)
+    total = total_result.scalar() or 0
+
+    # Fetch families with member counts using a subquery
+    member_count_subq = (
+        select(
+            FamilyMember.family_id,
+            func.count(FamilyMember.id).label("member_count"),
+        )
+        .group_by(FamilyMember.family_id)
+        .subquery()
+    )
+
+    offset = (page - 1) * page_size
+    stmt = (
+        select(Family, func.coalesce(member_count_subq.c.member_count, 0).label("member_count"))
+        .outerjoin(member_count_subq, Family.id == member_count_subq.c.family_id)
+        .order_by(Family.created_at.desc())
+        .offset(offset)
+        .limit(page_size)
+    )
+    result = await db.execute(stmt)
+    rows = result.all()
+
+    items = []
+    for row in rows:
+        family = row[0]
+        member_count = row[1]
+        items.append(
+            FamilyListItem(
+                id=family.id,
+                name=family.name,
+                avatar_url=family.avatar_url,
+                invite_code=family.invite_code,
+                created_by=family.created_by,
+                member_count=member_count,
+                created_at=family.created_at,
+                updated_at=family.updated_at,
+            )
+        )
+
+    return FamilyListResponse(
+        items=items,
+        total=total,
+        page=page,
+        page_size=page_size,
+        has_more=(page * page_size) < total,
+    )
+
+
+@router.get("/families/{family_id}", response_model=FamilyDetailResponse)
+async def get_family_detail(
+    family_id: uuid.UUID,
+    admin_user: User = Depends(get_admin_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """View a family's data including members and stats (read-only admin view)."""
+    # Fetch the family
+    stmt = select(Family).where(Family.id == family_id)
+    result = await db.execute(stmt)
+    family = result.scalar_one_or_none()
+
+    if family is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="家庭不存在",
+        )
+
+    # Fetch members with user info
+    members_stmt = (
+        select(FamilyMember, User)
+        .join(User, FamilyMember.user_id == User.id)
+        .where(FamilyMember.family_id == family_id)
+    )
+    members_result = await db.execute(members_stmt)
+    member_rows = members_result.all()
+
+    members = []
+    for row in member_rows:
+        member = row[0]
+        user = row[1]
+        members.append(
+            FamilyMemberBrief(
+                user_id=member.user_id,
+                nickname=user.nickname,
+                nickname_in_family=member.nickname_in_family,
+                role=member.role.value if hasattr(member.role, "value") else str(member.role),
+                relationship=member.relationship,
+            )
+        )
+
+    return FamilyDetailResponse(
+        id=family.id,
+        name=family.name,
+        avatar_url=family.avatar_url,
+        invite_code=family.invite_code,
+        created_by=family.created_by,
+        member_count=len(members),
+        members=members,
+        created_at=family.created_at,
+        updated_at=family.updated_at,
     )

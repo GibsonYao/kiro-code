@@ -5,8 +5,10 @@
       <view class="nav-back" @click="goBack">
         <text class="back-icon">←</text>
       </view>
-      <text class="nav-title">创建行动</text>
-      <view class="nav-placeholder" />
+      <text class="nav-title">{{ isEdit ? '编辑行动' : '创建行动' }}</text>
+      <view class="nav-right">
+        <text v-if="isEdit" class="delete-btn" @click="handleDelete">删除</text>
+      </view>
     </view>
 
     <scroll-view class="form-container" scroll-y>
@@ -99,10 +101,10 @@
     <view class="submit-bar">
       <button
         class="submit-btn"
-        :disabled="!canSubmit || actionStore.creating"
+        :disabled="!canSubmit || submitting"
         @click="handleSubmit"
       >
-        {{ actionStore.creating ? '创建中...' : '创建行动' }}
+        {{ submitting ? (isEdit ? '保存中...' : '创建中...') : (isEdit ? '保存修改' : '创建行动') }}
       </button>
     </view>
   </view>
@@ -110,10 +112,16 @@
 
 <script setup lang="ts">
 import { ref, computed } from 'vue'
+import { onLoad } from '@dcloudio/uni-app'
 import { useActionStore } from '@/stores/action'
+import { actionApi } from '@/services/api/actions'
 import type { ActionType } from '@/services/types'
 
 const actionStore = useActionStore()
+
+const isEdit = ref(false)
+const editId = ref('')
+const submitting = ref(false)
 
 const form = ref({
   title: '',
@@ -126,6 +134,29 @@ const form = ref({
 const rewardStr = ref('')
 
 const canSubmit = computed(() => form.value.title.trim().length > 0)
+
+onLoad((query) => {
+  const id = query?.id
+  if (id) {
+    isEdit.value = true
+    editId.value = id
+    loadAction(id)
+  }
+})
+
+async function loadAction(id: string) {
+  try {
+    const action = await actionApi.getAction(id)
+    form.value.title = action.title
+    form.value.action_type = action.action_type
+    form.value.scheduled_date = action.scheduled_date || ''
+    form.value.scheduled_time = action.scheduled_time || ''
+    form.value.task_id = action.task_id || ''
+    rewardStr.value = action.reward_points ? String(action.reward_points) : ''
+  } catch {
+    uni.showToast({ title: '加载失败', icon: 'none' })
+  }
+}
 
 function goBack() {
   uni.navigateBack()
@@ -140,23 +171,51 @@ function onTimeChange(e: { detail: { value: string } }) {
 }
 
 async function handleSubmit() {
-  if (!canSubmit.value) return
+  if (!canSubmit.value || submitting.value) return
 
+  submitting.value = true
   try {
-    await actionStore.createAction({
+    const data = {
       title: form.value.title.trim(),
       action_type: form.value.action_type,
       scheduled_date: form.value.scheduled_date || undefined,
       scheduled_time: form.value.scheduled_time || undefined,
       task_id: form.value.task_id.trim() || undefined,
       reward_points: rewardStr.value ? parseInt(rewardStr.value) : 0,
-    })
+    }
 
-    uni.showToast({ title: '创建成功', icon: 'success' })
+    if (isEdit.value) {
+      await actionApi.updateAction(editId.value, data)
+      uni.showToast({ title: '保存成功', icon: 'success' })
+    } else {
+      await actionStore.createAction(data)
+      uni.showToast({ title: '创建成功', icon: 'success' })
+    }
     setTimeout(() => uni.navigateBack(), 1000)
   } catch {
-    uni.showToast({ title: '创建失败', icon: 'none' })
+    uni.showToast({ title: isEdit.value ? '保存失败' : '创建失败', icon: 'none' })
+  } finally {
+    submitting.value = false
   }
+}
+
+async function handleDelete() {
+  uni.showModal({
+    title: '确认删除',
+    content: '删除后不可恢复，确定要删除这个行动吗？',
+    confirmColor: '#f5222d',
+    success: async (res) => {
+      if (res.confirm) {
+        try {
+          await actionStore.deleteAction(editId.value)
+          uni.showToast({ title: '已删除', icon: 'success' })
+          setTimeout(() => uni.navigateBack(), 800)
+        } catch {
+          uni.showToast({ title: '删除失败', icon: 'none' })
+        }
+      }
+    },
+  })
 }
 </script>
 
@@ -191,8 +250,15 @@ async function handleSubmit() {
   color: #333;
 }
 
-.nav-placeholder {
+.nav-right {
   width: 64rpx;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.delete-btn {
+  font-size: 28rpx;
+  color: #f5222d;
 }
 
 .form-container {

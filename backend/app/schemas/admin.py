@@ -88,3 +88,59 @@ class AuditLogResponse(BaseModel):
     created_at: datetime
 
     model_config = {"from_attributes": True}
+
+
+# ─── Family Admin Schemas ──────────────────────────────────────────────────────
+
+
+class FamilyMemberBrief(BaseModel):
+    """Brief info about a family member."""
+
+    user_id: uuid.UUID
+    nickname: str | None = None
+    nickname_in_family: str | None = None
+    role: str
+    relationship: str | None = None
+
+    model_config = {"from_attributes": True}
+
+
+class FamilyListItem(BaseModel):
+    """Family item in admin list with member count."""
+
+    id: uuid.UUID
+    name: str
+    avatar_url: str | None = None
+    invite_code: str
+    created_by: uuid.UUID
+    member_count: int
+    created_at: datetime
+    updated_at: datetime
+
+    model_config = {"from_attributes": True}
+
+
+class FamilyListResponse(BaseModel):
+    """Paginated list response for families."""
+
+    items: list[FamilyListItem]
+    total: int
+    page: int
+    page_size: int
+    has_more: bool
+
+
+class FamilyDetailResponse(BaseModel):
+    """Detailed family info for admin view."""
+
+    id: uuid.UUID
+    name: str
+    avatar_url: str | None = None
+    invite_code: str
+    created_by: uuid.UUID
+    member_count: int
+    members: list[FamilyMemberBrief]
+    created_at: datetime
+    updated_at: datetime
+
+    model_config = {"from_attributes": True}

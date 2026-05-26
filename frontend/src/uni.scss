@@ -16,3 +16,34 @@ $uni-main-color: #4A90D9;
 $uni-base-color: #1A1A2E;
 $uni-secondary-color: #4A4A68;
 $uni-border-color: #E8E8F0;
+
+/* ─── 深色/浅色模式 CSS 变量 ─── */
+:root {
+  --bg-primary: #FFFFFF;
+  --bg-secondary: #F5F6FA;
+  --bg-card: #FFFFFF;
+  --text-primary: #1A1A2E;
+  --text-secondary: #4A4A68;
+  --text-tertiary: #999999;
+  --border-color: #E8E8F0;
+  --shadow-color: rgba(0, 0, 0, 0.08);
+  --accent-color: #4A90D9;
+  --success-color: #52C41A;
+  --warning-color: #FAAD14;
+  --error-color: #FF4D4F;
+}
+
+.dark-mode {
+  --bg-primary: #1A1A2E;
+  --bg-secondary: #16213E;
+  --bg-card: #0F3460;
+  --text-primary: #E8E8F0;
+  --text-secondary: #B8B8D0;
+  --text-tertiary: #7A7A9A;
+  --border-color: #2A2A4E;
+  --shadow-color: rgba(0, 0, 0, 0.3);
+  --accent-color: #6AB0FF;
+  --success-color: #73D13D;
+  --warning-color: #FFC53D;
+  --error-color: #FF7875;
+}

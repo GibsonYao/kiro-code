@@ -444,6 +444,141 @@ export interface ActionTimeLogRequest {
 
 
 // ============================================
+// 食谱模块类型
+// ============================================
+
+/** 食谱项 */
+export interface RecipeItem {
+  id: string
+  family_id: string
+  name: string
+  description: string | null
+  cover_image_url: string | null
+  display_text: string | null
+  ingredients: string[] | null
+  steps: string[] | null
+  created_by: string
+  created_at: string
+  updated_at: string
+}
+
+/** 食谱列表响应 */
+export interface RecipeListResponse {
+  items: RecipeItem[]
+  total: number
+  page: number
+  page_size: number
+  has_more: boolean
+}
+
+/** 创建食谱请求 */
+export interface RecipeCreateRequest {
+  name: string
+  description?: string
+  ingredients?: string[]
+  steps?: string[]
+}
+
+/** 更新食谱请求 */
+export interface RecipeUpdateRequest {
+  name?: string
+  description?: string
+  ingredients?: string[]
+  steps?: string[]
+}
+
+/** AI生成食谱响应 */
+export interface RecipeGenerateResponse {
+  id: string | null
+  name: string
+  ingredients: string[]
+  steps: string[]
+  description: string | null
+}
+
+/** 饮食偏好项 */
+export interface FoodPreferenceItem {
+  id: string
+  family_id: string
+  user_id: string
+  taste_preferences: Record<string, unknown> | null
+  favorite_foods: string[] | null
+  food_allergies: string[] | null
+  dietary_restrictions: string[] | null
+  created_at: string
+  updated_at: string
+}
+
+/** 饮食偏好汇总响应 */
+export interface FoodPreferenceSummaryResponse {
+  items: FoodPreferenceItem[]
+  total: number
+}
+
+/** 更新饮食偏好请求 */
+export interface FoodPreferenceUpdateRequest {
+  taste_preferences?: Record<string, unknown>
+  favorite_foods?: string[]
+  food_allergies?: string[]
+  dietary_restrictions?: string[]
+}
+
+
+// ============================================
+// 日历模块类型
+// ============================================
+
+/** 日历事件类型 */
+export type CalendarEventType = 'schedule' | 'todo' | 'anniversary'
+
+/** 日历事件项 */
+export interface CalendarEventItem {
+  id: string
+  family_id: string
+  user_id: string
+  title: string
+  cover_image_url: string | null
+  event_type: CalendarEventType
+  event_date: string | null
+  event_time: string | null
+  is_recurring: boolean
+  remind_before_days: number
+  action_id: string | null
+  created_at: string
+  updated_at: string
+}
+
+/** 日历事件列表响应 */
+export interface CalendarEventListResponse {
+  items: CalendarEventItem[]
+  total: number
+  page: number
+  page_size: number
+  has_more: boolean
+}
+
+/** 创建日历事件请求 */
+export interface CalendarEventCreateRequest {
+  title: string
+  event_type: CalendarEventType
+  event_date?: string
+  event_time?: string
+  is_recurring?: boolean
+  remind_before_days?: number
+}
+
+/** 更新日历事件请求 */
+export interface CalendarEventUpdateRequest {
+  title?: string
+  event_type?: CalendarEventType
+  event_date?: string
+  event_time?: string
+  is_recurring?: boolean
+  remind_before_days?: number
+}
+
+
+// ============================================
 // 审核模块类型
 // ============================================
 
